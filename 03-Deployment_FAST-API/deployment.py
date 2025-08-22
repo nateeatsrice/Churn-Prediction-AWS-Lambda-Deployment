@@ -2,80 +2,63 @@
 # coding: utf-8
 
 import pickle
-import requests
 
+from typing import Literal
+from pydantic import BaseModel, Field
+
+from fastapi import FastAPI
+import uvicorn
+
+#defining parameters for input into model
+class Customer(BaseModel):
+    gender: Literal["male", "female"]
+    seniorcitizen: Literal[0, 1]
+    partner: Literal["yes", "no"]
+    dependents: Literal["yes", "no"]
+    phoneservice: Literal["yes", "no"]
+    multiplelines: Literal["no", "yes", "no_phone_service"]
+    internetservice: Literal["dsl", "fiber_optic", "no"]
+    onlinesecurity: Literal["no", "yes", "no_internet_service"]
+    onlinebackup: Literal["no", "yes", "no_internet_service"]
+    deviceprotection: Literal["no", "yes", "no_internet_service"]
+    techsupport: Literal["no", "yes", "no_internet_service"]
+    streamingtv: Literal["no", "yes", "no_internet_service"]
+    streamingmovies: Literal["no", "yes", "no_internet_service"]
+    contract: Literal["month-to-month", "one_year", "two_year"]
+    paperlessbilling: Literal["yes", "no"]
+    paymentmethod: Literal[
+        "electronic_check",
+        "mailed_check",
+        "bank_transfer_(automatic)",
+        "credit_card_(automatic)",
+    ]
+    tenure: int = Field(..., ge=0)
+    monthlycharges: float = Field(..., ge=0.0)
+    totalcharges: float = Field(..., ge=0.0)
+
+class PredictResponse(BaseModel):
+    churn_probability: float
+    churn: bool
+
+#creating application customer churn prediction
+app = FastAPI(title="customer-churn-prediction")
+
+#importing pkl file of trained model   
 with open('../log_reg.bin','rb') as f_in:
-    (dv,model) = pickle.load(f_in)
+    (pipeline) = pickle.load(f_in)
 
-datapoint = {
-    'gender': 'male',
-    'seniorcitizen': 0,
-    'partner': 'yes',
-    'dependents': 'yes',
-    'phoneservice': 'no',
-    'multiplelines': 'no_phone_service',
-    'internetservice': 'dsl',
-    'onlinesecurity': 'no',
-    'onlinebackup': 'yes',
-    'deviceprotection': 'no',
-    'techsupport': 'no',
-    'streamingtv': 'no',
-    'streamingmovies': 'no',
-    'contract': 'month-to-month',
-    'paperlessbilling': 'yes',
-    'paymentmethod': 'electronic_check',
-    'tenure': 1,
-    'monthlycharges': 30.85,
-    'totalcharges': 29.85
-}
+def predict_single(customer):
+    result = pipeline.predict_proba(customer)[0, 1]
+    return float(result)
 
-X = dv.transform(datapoint)
-model.predict_proba(X)[0, 1]
+@app.post("/predict")
+def predict(customer: Customer) -> PredictResponse:
+    prob = predict_single(customer.model_dump())
 
-pipeline.fit(train_dict, y_train)
+    return PredictResponse(
+        churn_probability=prob,
+        churn=prob >= 0.5
+    )
 
-
-pipeline.predict_proba(datapoint)[0, 1]
-
-
-url = 'http://localhost:9696/predict'
-
-customer = {
-    'gender': 'female',
-    'seniorcitizen': 0,
-    'partner': 'yes',
-    'dependents': 'yes',
-    'phoneservice': 'no',
-    'multiplelines': 'no_phone_service',
-    'internetservice': 'dsl',
-    'onlinesecurity': 'no',
-    'onlinebackup': 'yes',
-    'deviceprotection': 'no',
-    'techsupport': 'no',
-    'streamingtv': 'no',
-    'streamingmovies': 'no',
-    'contract': 'month-to-month',
-    'paperlessbilling': 'yes',
-    'paymentmethod': 'electronic_check',
-    'tenure': 1,
-    'monthlycharges': 29.85,
-    'totalcharges': 29.85
-}
-
-response = requests.post(url, json=customer)
-
-predictions = response.json()
-
-if predictions['churn']:
-    print('accept loan application')
-else:
-    print('reject loan application')
-
-for n in numerical:
-    print(df[n].describe())
-    print()
-
-for c in categorical:
-    print(df[c].value_counts())
-    print()
-
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=9698)
