@@ -1,8 +1,10 @@
 import requests
 
-datapoint = {
+url = 'http://localhost:9698/predict'
+
+customer = {
     'gender': 'male',
-    'seniorcitizen': 0,
+    'seniorcitizen': 1,
     'partner': 'yes',
     'dependents': 'yes',
     'phoneservice': 'no',
@@ -22,13 +24,7 @@ datapoint = {
     'totalcharges': 29.85
 }
 
-result = pipeline.predict_proba(datapoint)[0, 1]
-
-print(f'probability of customer churning: {result}')
-
-url = 'http://localhost:9696/predict'
-
-customer = {
+customer_2 = {
     'gender': 'female',
     'seniorcitizen': 0,
     'partner': 'yes',
@@ -55,14 +51,6 @@ response = requests.post(url, json=customer)
 predictions = response.json()
 
 if predictions['churn']:
-    print('accept loan application')
+    print('customer is likely to churn, send promo')
 else:
-    print('reject loan application')
-
-for n in numerical:
-    print(df[n].describe())
-    print()
-
-for c in categorical:
-    print(df[c].value_counts())
-    print()
+    print('customer is not likely to churn')
