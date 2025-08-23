@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from fastapi import FastAPI
 import uvicorn
 
-#defining parameters for input into model
+#defining required input datatypes for model
 class Customer(BaseModel):
     gender: Literal["male", "female"]
     seniorcitizen: Literal[0, 1]
@@ -36,22 +36,25 @@ class Customer(BaseModel):
     monthlycharges: float = Field(..., ge=0.0)
     totalcharges: float = Field(..., ge=0.0)
 
+#defining required datatype output from model
 class PredictResponse(BaseModel):
     churn_probability: float
     churn: bool
 
 #creating application customer churn prediction
-app = FastAPI(title="customer-churn-prediction")
+app = FastAPI(title="predict-churn")
 
 #importing pkl file of trained model   
 with open('../log_reg.bin','rb') as f_in:
     (pipeline) = pickle.load(f_in)
 
+# the actual potato and meat 
 def predict_single(customer):
     result = pipeline.predict_proba(customer)[0, 1]
     return float(result)
 
 @app.post("/predict")
+
 def predict(customer: Customer) -> PredictResponse:
     prob = predict_single(customer.model_dump())
 
