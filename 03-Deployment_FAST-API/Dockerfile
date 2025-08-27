@@ -16,13 +16,13 @@ ENV PATH="/code/.venv/bin:$PATH"
 # pyproject.toml     → project metadata and dependencies
 # uv.lock            → locked dependency versions (for reproducibility)
 # .python-version    → Python version specification
-COPY "pyproject.toml" "uv.lock" ".python-version" ./
+COPY ["pyproject.toml", "uv.lock", ".python-version", "./"]
 
 # Install dependencies exactly as locked in uv.lock, without updating them
 RUN uv sync --locked
 
 # Copy application code and model data into the container
-COPY "deployment.py" "log_reg.bin" ./
+COPY ["deployment.py", "log_reg.bin", "./"]
 
 # Expose TCP port 9698 so it can be accessed from outside the container
 EXPOSE 9698
@@ -31,4 +31,4 @@ EXPOSE 9698
 # predict:app → refers to 'app' object inside predict.py
 # --host 0.0.0.0 → listen on all interfaces
 # --port 9698    → listen on port 9698
-ENTRYPOINT ["uvicorn", "predict:app", "--host", "0.0.0.0", "--port", "9698"]
+ENTRYPOINT ["uvicorn", "deployment:app", "--host", "0.0.0.0", "--port", "9698"]

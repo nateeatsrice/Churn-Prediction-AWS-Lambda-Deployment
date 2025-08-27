@@ -45,7 +45,7 @@ class PredictResponse(BaseModel):
 app = FastAPI(title="predict-churn")
 
 #importing pkl file of trained model   
-with open('../log_reg.bin','rb') as f_in:
+with open('./log_reg.bin','rb') as f_in:
     (pipeline) = pickle.load(f_in)
 
 # the actual potato and meat 
